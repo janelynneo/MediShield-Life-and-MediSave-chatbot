@@ -1,0 +1,31 @@
+# COC Sync Marker — kailash-coc-claude-py
+timestamp: 2026-06-01T13:00:00Z
+source: loom/.claude
+loom_sha: e934018
+loom_version: 2.39.0
+variant: py
+clis: [claude]
+visibility: public
+stats:
+  updated: 147
+  created: 0
+  unchanged: 1095
+  composed: 1            # rules/deployment.md slot-keyed -> compose.mjs
+  legacy_overlays: 140   # py legacy-full-file overlays copied + stripped
+  build_internal_stripped: 8
+  content_synced_byte_equal: true
+  copied_global: 1242    # sync-tier-aware.mjs --target py --template kailash-coc-claude-py
+  baseline_status: none  # CC-only template; CLAUDE.md preserved
+  baselines_emitted:
+    cc: 0                # CLAUDE.md preserved, not emitted
+    codex: 0             # CC-only template -- no AGENTS.md
+    gemini: 0            # CC-only template -- no GEMINI.md
+  preserved:
+    - CLAUDE.md
+    - README.md
+  obsoleted_purge: clean-zero-present
+  settings_hooks_resolved: 38
+  sdk_pins:
+    kailash: 2.28.3->2.28.4
+    kailash-nexus: 2.8.0->2.9.0
+  verify_overlays: 286/286 Failing:0

@@ -1,0 +1,28 @@
+name: COC Sync PR Notification (no auto-merge)
+
+# kailash-coc-claude-py inherits from kailash-py (open-source).
+# All PRs require admin approval — including COC sync PRs.
+
+on:
+  pull_request:
+    types: [labeled, opened]
+
+jobs:
+  notify:
+    if: |
+      github.event.label.name == 'coc-sync' ||
+      (github.event.action == 'opened' && contains(github.event.pull_request.labels.*.name, 'coc-sync'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Discord
+        run: |
+          if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+            PR="${{ github.event.pull_request.number }}"
+            TITLE="${{ github.event.pull_request.title }}"
+            REPO="${{ github.repository }}"
+            curl -s -H "Content-Type: application/json" \
+              -d "{\"embeds\":[{\"title\":\"[COC-SYNC PR #${PR}] ${TITLE}\",\"url\":\"https://github.com/${REPO}/pull/${PR}\",\"color\":3447003,\"description\":\"COC sync from BUILD repo — awaiting admin review.\"}]}" \
+              "$DISCORD_WEBHOOK_URL" || true
+          fi
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

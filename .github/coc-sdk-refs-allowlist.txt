@@ -1,0 +1,63 @@
+# Allowlist of files that legitimately reference src/kailash/ source paths.
+# These files guide developers working WITH the kailash-py source tree
+# (skill navigation, origin provenance, compliance tracking).
+#
+# CI validates .claude/ content doesn't contain src/kailash/ contamination
+# EXCEPT in files listed here. One file path per line, relative to repo root.
+# Lines starting with # are comments, blank lines ignored.
+#
+# Add a path here if a new skill/agent legitimately needs to reference
+# kailash-py source (e.g., provenance for an Origin: line, or a skill
+# that teaches developers how to navigate the SDK layout).
+
+.claude/skills/01-core-sdk/production-readiness-patterns.md
+.claude/skills/01-core-sdk/async-resource-safety.md
+.claude/skills/01-core-sdk/runtime-lifecycle.md
+.claude/skills/01-core-sdk/otel-tracing.md
+.claude/skills/10-deployment-git/release-checklist.md
+.claude/guides/co-setup/07-sync-flow.md
+.claude/commands/release.md
+.claude/skills/08-nodes-reference/nodes-quick-index.md
+.claude/skills/26-eatp-reference/eatp-posture-stores.md
+.claude/skills/29-pact/pact-dtr-addressing.md
+.claude/skills/29-pact/pact-kaizen-integration.md
+.claude/skills/29-pact/pact-governed-agents.md
+.claude/skills/29-pact/pact-envelopes.md
+.claude/skills/29-pact/pact-access-enforcement.md
+.claude/skills/29-pact/pact-quickstart.md
+.claude/skills/29-pact/pact-governance-engine.md
+.claude/agents/frameworks/infrastructure-specialist.md
+.claude/rules/dataflow-identifier-safety.md
+.claude/skills/05-kailash-mcp/mcp-platform-server.md
+.claude/skills/spec-compliance/SKILL.md
+.claude/skills/30-claude-code-patterns/parallel-merge-workflow.md
+.claude/skills/18-security-patterns/credential-url-handling.md
+.claude/skills/29-pact/pact-conformance-features.md
+.claude/skills/02-dataflow/cache-cas-fail-closed.md
+
+# VERSION changelog references specific SDK file fixes by path
+.claude/VERSION
+
+# loom 2.9.x sync — files containing legitimate src/kailash/ references
+# (rule examples teaching SDK structure, hook scanning logic, and skill content
+# that documents BUILD repo conventions for downstream developers)
+.claude/commands/cc-audit.md
+.claude/hooks/session-start.js
+.claude/rules/build-repo-release-discipline.md
+.claude/rules/ci-runners.md
+.claude/rules/deployment.md
+.claude/skills/10-deployment-git/multi-package-release-wave.md
+.claude/skills/12-testing-strategies/SKILL.md
+.claude/skills/26-eatp-reference/eatp-trust-posture-canonical.md
+.claude/skills/30-claude-code-patterns/sdk-upstream-donation.md
+
+# ─── auto-extended 2026-05-09 from loom v2.28.2 (1fcffe7) ──────
+# Files newly distributed in this sync that contain legitimate
+# src/kailash/ references. Auto-appended by coc-sync Step 7.5.
+.claude/skills/15-enterprise-infrastructure/durability-patterns.md
+.claude/skills/15-enterprise-infrastructure/scheduler-patterns.md
+
+# ─── auto-extended 2026-05-18 from loom v2.31.0 @ 0266594 ──────
+# Auto-appended by coc-sync Step 7.5 (delta sync PRs #284/#285/#286).
+.claude/audit-fixtures/scan-synced-disclosure/r3-smuggle-closed/.claude/rules/cleanlocks.md
+.claude/bin/scan-synced-disclosure.mjs
