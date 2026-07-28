@@ -30,23 +30,40 @@ st.set_page_config(
     layout="centered",
 )
 
-# ── Deductible table ─────────────────────────────────────────────────────────
-DEDUCTIBLES = {
-    ("Class C", "80 and below"): 2000,
-    ("Class C", "81 and above"): 3000,
-    ("Class B1", "80 and below"): 2500,
-    ("Class B1", "81 and above"): 3500,
-    ("Class B2", "80 and below"): 2000,
-    ("Class B2", "81 and above"): 3000,
-    ("Class A", "80 and below"): 3500,
-    ("Class A", "81 and above"): 5000,
-    ("Private", "80 and below"): 3500,
-    ("Private", "81 and above"): 5000,
-    ("Day Surgery", "80 and below"): 1500,
-    ("Day Surgery", "81 and above"): 2000,
-    ("Outpatient", "80 and below"): 500,
-    ("Outpatient", "81 and above"): 1000,
-}
+# ── Deductible table (loaded from CSV — edit data/deductibles.csv to update) ─────
+import csv, os
+
+DEDUCTIBLES = {}
+_DEDUCTIBLES_CSV = BASE_DIR / "data" / "deductibles.csv"
+os.makedirs(BASE_DIR / "data", exist_ok=True)
+
+if _DEDUCTIBLES_CSV.exists():
+    with open(_DEDUCTIBLES_CSV) as f:
+        for row in csv.DictReader(f):
+            DEDUCTIBLES[(row["ward"], row["age"])] = int(row["deductible"])
+else:
+    # Default values — also write the CSV so you can edit it
+    DEDUCTIBLES = {
+        ("Class C", "80 and below"): 2000,
+        ("Class C", "81 and above"): 3000,
+        ("Class B1", "80 and below"): 2500,
+        ("Class B1", "81 and above"): 3500,
+        ("Class B2", "80 and below"): 2000,
+        ("Class B2", "81 and above"): 3000,
+        ("Class A", "80 and below"): 3500,
+        ("Class A", "81 and above"): 5000,
+        ("Private", "80 and below"): 3500,
+        ("Private", "81 and above"): 5000,
+        ("Day Surgery", "80 and below"): 1500,
+        ("Day Surgery", "81 and above"): 2000,
+        ("Outpatient", "80 and below"): 500,
+        ("Outpatient", "81 and above"): 1000,
+    }
+    with open(_DEDUCTIBLES_CSV, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["ward", "age", "deductible"])
+        for (ward, age), deductible in DEDUCTIBLES.items():
+            w.writerow([ward, age, deductible])
 
 WARD_CLASSES = ["Class C", "Class B1", "Class B2", "Class A", "Private", "Day Surgery", "Outpatient"]
 AGE_GROUPS = ["80 and below", "81 and above"]
@@ -262,16 +279,18 @@ if st.session_state.get("pending_question"):
             st.markdown("**🧮 MediShield Life Deductible Calculator**")
             col1, col2 = st.columns(2)
             with col1:
-                ward = st.selectbox("Ward / Treatment Type", WARD_CLASSES, key="calc_ward")
+                st.selectbox("Ward / Treatment Type", WARD_CLASSES, key="calc_ward")
             with col2:
-                age = st.selectbox("Age Group", AGE_GROUPS, key="calc_age")
+                st.selectbox("Age Group", AGE_GROUPS, key="calc_age")
             c1, c2 = st.columns([1, 1])
             with c1:
                 if st.button("🧮 Calculate Deductible"):
-                    deductible = DEDUCTIBLES.get((ward, age), 0)
+                    ward_sel = st.session_state.get("calc_ward", WARD_CLASSES[0])
+                    age_sel = st.session_state.get("calc_age", AGE_GROUPS[0])
+                    deductible = DEDUCTIBLES.get((ward_sel, age_sel), 0)
                     result = (
                         f"**Deductible: ${deductible:,}** "
-                        f"(ward class **{ward}**, age **{age}**)\n\n"
+                        f"(ward class **{ward_sel}**, age **{age_sel}**)\n\n"
                         f"The deductible is the amount you pay once per policy year before MediShield Life coverage begins.\n\n"
                         f"**Annual claim limit:** Up to $200,000 per policy year (no lifetime limit).\n"
                         f"**Co-insurance:** You also pay 10-20% of the remaining bill."
