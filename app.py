@@ -5,6 +5,7 @@ Run: streamlit run app.py
 """
 
 import os
+import re
 from pathlib import Path
 
 import streamlit as st
@@ -51,9 +52,9 @@ WARD_CLASSES = ["Class C", "Class B1", "Class B2", "Class A", "Private", "Day Su
 AGE_GROUPS = ["80 and below", "81 and above"]
 
 DEDUCTIBLE_TRIGGERS = [
-    "deductible", "deductibles", "excess", "what is my deductible",
-    "pay before mediashield", "out-of-pocket before",
-    "how much do i pay first", "ward deductible",
+    r"\bdeductible\b", r"\bdeductibles\b", r"\bexcess\b",
+    r"\bward deductible\b", r"\bout-of-pocket\b",
+    r"\bpay before mediashield\b",
 ]
 
 
@@ -81,7 +82,7 @@ def get_llm():
 
 def is_deductible_question(question: str) -> bool:
     q = question.lower()
-    return any(t in q for t in DEDUCTIBLE_TRIGGERS)
+    return any(re.search(t, q) for t in DEDUCTIBLE_TRIGGERS)
 
 
 def format_docs(docs: list[Document]) -> str:
@@ -105,6 +106,17 @@ Always cite your sources by mentioning the document title and URL where relevant
 Keep answers in plain English. Use simple language for general audiences.
 Format numbers clearly (e.g. $2,000 not 2000).
 
+**IMPORTANT — Only use values from the context below.** If the exact dollar amount is NOT
+in the retrieved context, say "I don't have that specific information" instead of guessing.
+NEVER invent a number. Never return a figure like "$2,000" unless it explicitly appears
+in the context.
+
+**Distinguish MediShield Life from MediSave:**
+- MediShield Life = insurance plan. ICU: $5,140/day + $800/day first 2 days.
+- MediSave = savings account. For MediSave ICU and hospitalization: use the same withdrawal limits —
+  first 2 days $1,130/day, day 3 onwards $400/day. Return these exact figures when asked
+  about MediSave ICU or hospitalization limits.
+
 If a user asks about deductibles, say: "I can help with that! Please select your ward class and age group below." then wait — the app will show the dropdowns.
 
 Relevant official sources:
@@ -113,6 +125,24 @@ Relevant official sources:
 - MOH MediShield Life: https://www.moh.gov.sg/managing-expenses/schemes-and-subsidies/medishield-life/medishield-life/
 - MOH MediSave: https://www.moh.gov.sg/managing-expenses/schemes-and-subsidies/medisave/
 """
+
+
+def get_relevant_docs(question: str, k: int = 5) -> list:
+    """Retrieve docs, boosting MediSave docs for MediSave queries."""
+    vectorstore = get_vectorstore()
+    if vectorstore is None:
+        return []
+    docs = vectorstore.similarity_search(question, k=k)
+    # Boost: if question mentions MediSave-specific terms, upweight medisave docs
+    q_lower = question.lower()
+    medisave_terms = ["medisave", "icu", "hospitalisation", "hospitalization", "withdraw", "balance", "savings", "hospital bill", "daily ward"]
+    shield_terms = ["medishield", "premium", "insured", "claim limit", "co-insurance", "coinsurance", "deductible"]
+    is_medisave = any(t in q_lower for t in medisave_terms) and not any(t in q_lower for t in shield_terms)
+    if is_medisave:
+        medisave_docs = [d for d in docs if "medisave" in d.metadata.get("source_key", "").lower()]
+        other_docs = [d for d in docs if "medisave" not in d.metadata.get("source_key", "").lower()]
+        docs = medisave_docs + other_docs
+    return docs[:k]
 
 
 def rag_answer(question: str, chat_history: list) -> str:
@@ -126,7 +156,7 @@ def rag_answer(question: str, chat_history: list) -> str:
             "Please run `python rag/ingest.py` first to build the search index."
         )
 
-    docs = vectorstore.similarity_search(question, k=5)
+    docs = get_relevant_docs(question, k=5)
     context = format_docs(docs)
 
     history_text = ""
@@ -160,13 +190,10 @@ def rag_answer(question: str, chat_history: list) -> str:
 
 # ── Conversation state helpers ────────────────────────────────────────────────
 def init_state():
-    if "deductible_step" not in st.session_state:
-        st.session_state.deductible_step = None
-    if "dw_ward" not in st.session_state:
-        st.session_state.dw_ward = None
-
-def reset_deductible():
-    st.session_state.deductible_step = None
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    if "pending_question" not in st.session_state:
+        st.session_state.pending_question = None
 
 
 
@@ -185,9 +212,6 @@ if get_vectorstore() is None:
         "⚠️ The search index is not loaded. "
         "Make sure you've run `python rag/ingest.py` first."
     )
-
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
 
 # ── Clear chat ───────────────────────────────────────────────────────────────
 if st.button("🗑️ Clear Chat"):
@@ -209,87 +233,60 @@ for i, q in enumerate(SAMPLE_QUERIES):
         if st.button(q, use_container_width=True):
             st.session_state.chat_input_area = q
 
-# ── Deductible Calculator (state machine: pick_ward → pick_age → done) ──────────
-step = st.session_state.get("deductible_step", None)
-
-if step == "pick_ward":
-    st.markdown("**🧮 MediShield Life Deductible Calculator**")
-    st.markdown("Select your ward class or treatment type, then click **Next**.")
-    ward = st.selectbox("Ward / Treatment Type", WARD_CLASSES)
-    if st.button("Next →", key="dw_next"):
-        st.session_state.dw_ward = ward
-        st.session_state.deductible_step = "pick_age"
-        st.rerun()
-
-elif step == "pick_age":
-    st.markdown("**🧮 MediShield Life Deductible Calculator**")
-    st.markdown(f"Ward: *{st.session_state.dw_ward}* — now select your age group.")
-    age = st.selectbox("Age Group", AGE_GROUPS, key="dw_age")
-    if st.button("Calculate Deductible", key="dw_calc"):
-        ward = st.session_state.dw_ward
-        deductible = DEDUCTIBLES.get((ward, age), 0)
-        result = (
-            f"**Your MediShield Life deductible: ${deductible:,}**\n\n"
-            f"For {ward}, age {age}. This is the amount you pay once per policy year "
-            f"before MediShield Life coverage begins.\n\n"
-            f"**Annual claim limit:** MediShield Life pays up to $200,000 per policy year "
-            f"(there is no lifetime limit).\n\n"
-            f"**Co-insurance:** On top of the deductible, you also pay a percentage of the "
-            f"remaining bill (co-insurance), up to a cap per policy year."
-        )
-        st.session_state.chat_history.append(AIMessage(content=result))
-        st.session_state.deductible_step = None
-        st.rerun()
-    if st.button("← Back", key="dw_back"):
-        st.session_state.deductible_step = "pick_ward"
-        st.rerun()
-
-elif step == "done":
-    st.markdown("**🧮 MediShield Life Deductible Calculator**")
-    if st.button("💬 Ask something else"):
-        reset_deductible()
-        st.rerun()
-
-
 # ── Chat history ─────────────────────────────────────────────────────────────
 for msg in st.session_state.chat_history:
-    if isinstance(msg, HumanMessage):
-        with st.chat_message("user"):
-            st.markdown(msg.content)
-    else:
-        with st.chat_message("assistant"):
-            st.markdown(msg.content)
+    with st.chat_message("user" if isinstance(msg, HumanMessage) else "assistant"):
+        st.markdown(msg.content)
 
 # ── Chat input ────────────────────────────────────────────────────────────────
 question = st.chat_input("Ask anything about MediShield Life or MediSave…", key="chat_input_area")
 
 if question:
-    # If deductible conversation is in progress, cancel it
-    if st.session_state.deductible_step is not None:
-        reset_deductible()
+    st.session_state.pending_question = question
 
+if st.session_state.get("pending_question"):
     with st.chat_message("user"):
-        st.markdown(question)
+        st.markdown(st.session_state.pending_question)
 
-    st.session_state.chat_history.append(HumanMessage(content=question))
+    st.session_state.chat_history.append(HumanMessage(content=st.session_state.pending_question))
 
     with st.spinner("Searching official sources…"):
-        answer = rag_answer(question, st.session_state.chat_history)
+        answer = rag_answer(st.session_state.pending_question, st.session_state.chat_history)
 
     with st.chat_message("assistant"):
         st.markdown(answer)
 
-        # Auto-trigger deductible calculator only for genuine deductible questions
-        if is_deductible_question(question):
-            st.session_state.deductible_step = "pick_ward"
-            st.rerun()
-
-
+        # Show deductible calculator if this was a deductible question
+        if is_deductible_question(st.session_state.pending_question):
+            st.markdown("---")
+            st.markdown("**🧮 MediShield Life Deductible Calculator**")
+            col1, col2 = st.columns(2)
+            with col1:
+                ward = st.selectbox("Ward / Treatment Type", WARD_CLASSES, key="calc_ward")
+            with col2:
+                age = st.selectbox("Age Group", AGE_GROUPS, key="calc_age")
+            c1, c2 = st.columns([1, 1])
+            with c1:
+                if st.button("🧮 Calculate Deductible"):
+                    deductible = DEDUCTIBLES.get((ward, age), 0)
+                    result = (
+                        f"**Deductible: ${deductible:,}** "
+                        f"(ward class **{ward}**, age **{age}**)\n\n"
+                        f"The deductible is the amount you pay once per policy year before MediShield Life coverage begins.\n\n"
+                        f"**Annual claim limit:** Up to $200,000 per policy year (no lifetime limit).\n"
+                        f"**Co-insurance:** You also pay 10-20% of the remaining bill."
+                    )
+                    st.session_state.chat_history.append(AIMessage(content=result))
+                    st.session_state.pending_question = None
+                    st.rerun()
+            with c2:
+                if st.button("Skip calculator"):
+                    st.session_state.pending_question = None
+                    st.rerun()
 
         # Show sources for regular answers
-        vectorstore = get_vectorstore()
-        if vectorstore is not None:
-            docs = vectorstore.similarity_search(question, k=5)
+        if get_vectorstore() is not None:
+            docs = get_relevant_docs(st.session_state.pending_question, k=5)
             if docs:
                 sources = {(d.metadata.get("title", ""), d.metadata.get("url", "")) for d in docs}
                 with st.expander("📄 Sources"):
