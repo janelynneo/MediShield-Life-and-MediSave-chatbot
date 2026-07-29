@@ -30,43 +30,136 @@ st.set_page_config(
     layout="centered",
 )
 
-# ── Deductible table (loaded from CSV — edit data/deductibles.csv to update) ─────
+# ── All configurable limits (loaded from data/limits.csv) ───────────────────────
 import csv, os
 
-DEDUCTIBLES = {}
-_DEDUCTIBLES_CSV = BASE_DIR / "data" / "deductibles.csv"
+_LIMITS_CSV = BASE_DIR / "data" / "limits.csv"
 os.makedirs(BASE_DIR / "data", exist_ok=True)
 
-if _DEDUCTIBLES_CSV.exists():
-    with open(_DEDUCTIBLES_CSV) as f:
+# Structure: LIMITS["section"][key] = value
+# DEDUCTIBLES[(ward, age)] = deductible  (from deductible section)
+# TOSP[tosp_code] = {"medishield": n, "medisave": n}
+# RADIOTHERAPY[name] = {"medishield": n, "medisave": n}
+# OTHER_TREATMENTS[name] = {"medishield": n, "medisave": n}
+# PRORATION_INPATIENT[(ward, citizenship)] = "XX%"
+# PRORATION_DAYSURG[(setting, citizenship)] = "XX%"
+# PRORATION_CH[(setting, citizenship)] = "XX%"
+LIMITS: dict = {}
+DEDUCTIBLES: dict = {}
+TOSP: dict = {}
+RADIOTHERAPY: dict = {}
+OTHER_TREATMENTS: dict = {}
+PRORATION_INPATIENT: dict = {}
+PRORATION_DAYSURG: dict = {}
+PRORATION_CH: dict = {}
+
+def _int(val):
+    try:
+        return int(str(val).strip().replace(",", "").replace("%", ""))
+    except (ValueError, AttributeError):
+        return None
+
+def _pct(val):
+    s = str(val).strip()
+    return s if s else None
+
+if _LIMITS_CSV.exists():
+    with open(_LIMITS_CSV) as f:
         for row in csv.DictReader(f):
-            DEDUCTIBLES[(row["ward"], row["age"])] = int(row["deductible"])
+            sec = row.get("section", "").strip()
+            cat = row.get("category", "").strip()
+            item = row.get("item", "").strip()
+            ms = _int(row.get("medishield_life", ""))
+            mv = _int(row.get("medisave", ""))
+
+            # Section header row
+            if sec.startswith("[") and sec.endswith("]"):
+                continue
+
+            # Section is in the section column (lowercase)
+            current = sec.lower()
+
+            if current == "limits":
+                if item:
+                    LIMITS.setdefault("main_limits", {})[item] = ms
+
+            elif current == "deductible":
+                ward = cat
+                age = item
+                if ward and age and ms is not None:
+                    DEDUCTIBLES[(ward, age)] = ms
+
+            elif current == "tosp table":
+                code = cat   # "1A", "2B" etc.
+                if code:
+                    TOSP[code] = {"medishield": ms, "medisave": mv}
+
+            elif current == "radiotherapy":
+                name = cat
+                if name:
+                    RADIOTHERAPY[name] = {"medishield": ms, "medisave": mv}
+
+            elif current == "other treatments":
+                name = cat
+                if name:
+                    OTHER_TREATMENTS[name] = {"medishield": ms, "medisave": mv}
+
+            elif current == "maximum claim limit":
+                name = cat
+                if name:
+                    LIMITS.setdefault("max_claim", {})[name] = ms
+
+            elif current == "proration_inpatient":
+                ward = cat
+                citizenship = item
+                if ward and citizenship:
+                    PRORATION_INPATIENT[(ward, citizenship)] = _pct(row.get("medishield_life",""))
+
+            elif current == "proration_daysurg":
+                setting = cat
+                citizenship = item
+                if setting and citizenship:
+                    PRORATION_DAYSURG[(setting, citizenship)] = _pct(row.get("medishield_life",""))
+
+            elif current == "proration_community_hospital" or current == "proration community hospital":
+                setting = cat
+                citizenship = item
+                if setting and citizenship:
+                    PRORATION_CH[(setting, citizenship)] = _pct(row.get("medishield_life",""))
+
 else:
-    # Default values — also write the CSV so you can edit it
+    LIMITS["main_limits"] = {
+        "ward_limit_per_day": 830,
+        "icu_limit_per_day": 5140,
+        "first_2_days": 800,
+        "day_surgery_per_day": 830,
+        "psychiatric_per_day": 230,
+        "psych_first_2_days": 1400,
+        "ch_rehab_per_day": 370,
+        "ch_subacute_per_day": 570,
+    }
+    LIMITS["max_claim"] = {"annual_limit": 200000}
     DEDUCTIBLES = {
         ("Class C", "80 and below"): 2000,
-        ("Class C", "81 and above"): 3000,
+        ("Class C", "81 and above"): 2750,
         ("Class B1", "80 and below"): 2500,
         ("Class B1", "81 and above"): 3500,
         ("Class B2", "80 and below"): 2000,
-        ("Class B2", "81 and above"): 3000,
+        ("Class B2", "81 and above"): 3500,
         ("Class A", "80 and below"): 3500,
-        ("Class A", "81 and above"): 5000,
+        ("Class A", "81 and above"): 4500,
         ("Private", "80 and below"): 3500,
-        ("Private", "81 and above"): 5000,
+        ("Private", "81 and above"): 4500,
         ("Day Surgery", "80 and below"): 1500,
         ("Day Surgery", "81 and above"): 2000,
         ("Outpatient", "80 and below"): 500,
         ("Outpatient", "81 and above"): 1000,
     }
-    with open(_DEDUCTIBLES_CSV, "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["ward", "age", "deductible"])
-        for (ward, age), deductible in DEDUCTIBLES.items():
-            w.writerow([ward, age, deductible])
 
 WARD_CLASSES = ["Class C", "Class B1", "Class B2", "Class A", "Private", "Day Surgery", "Outpatient"]
 AGE_GROUPS = ["80 and below", "81 and above"]
+
+def _fmt(n): return f"${n:,}"
 
 DEDUCTIBLE_TRIGGERS = [
     r"\bdeductible\b", r"\bdeductibles\b", r"\bexcess\b",
@@ -114,7 +207,13 @@ def format_docs(docs: list[Document]) -> str:
 
 
 def build_system_prompt() -> str:
-    return """You are a helpful assistant specialising in Singapore's MediShield Life health insurance
+    ml = LIMITS.get("main_limits", {})
+    icu_ms      = _fmt(ml.get("icu_limit_per_day", 5140))
+    icu_first2  = _fmt(ml.get("first_2_days", 800))
+    ms_first2   = _fmt(ml.get("first_2_days", 1130))   # same for hosp
+    ms_day3     = _fmt(ml.get("day3_onwards", 400))
+    annual      = _fmt(LIMITS.get("max_claim", {}).get("annual_limit", 200000))
+    return f"""You are a helpful assistant specialising in Singapore's MediShield Life health insurance
 and MediSave healthcare savings scheme. You answer questions accurately and concisely,
 using the official information provided in the context. If you do not know the answer,
 say so — do not make up information.
@@ -129,9 +228,9 @@ NEVER invent a number. Never return a figure like "$2,000" unless it explicitly 
 in the context.
 
 **Distinguish MediShield Life from MediSave:**
-- MediShield Life = insurance plan. ICU: $5,140/day + $800/day first 2 days.
+- MediShield Life = insurance plan. ICU: {icu_ms}/day + {icu_first2}/day first 2 days.
 - MediSave = savings account. For MediSave ICU and hospitalization: use the same withdrawal limits —
-  first 2 days $1,130/day, day 3 onwards $400/day. Return these exact figures when asked
+  first 2 days {ms_first2}/day, day 3 onwards {ms_day3}/day. Return these exact figures when asked
   about MediSave ICU or hospitalization limits.
 
 If a user asks about deductibles, say: "I can help with that! Please select your ward class and age group below." then wait — the app will show the dropdowns.
@@ -292,7 +391,7 @@ if st.session_state.get("pending_question"):
                         f"**Deductible: ${deductible:,}** "
                         f"(ward class **{ward_sel}**, age **{age_sel}**)\n\n"
                         f"The deductible is the amount you pay once per policy year before MediShield Life coverage begins.\n\n"
-                        f"**Annual claim limit:** Up to $200,000 per policy year (no lifetime limit).\n"
+                        f"**Annual claim limit:** Up to {_fmt(LIMITS.get('max_claim', {}).get('annual_limit', 200000))} per policy year (no lifetime limit).\n"
                         f"**Co-insurance:** You also pay 10-20% of the remaining bill."
                     )
                     st.session_state.chat_history.append(AIMessage(content=result))

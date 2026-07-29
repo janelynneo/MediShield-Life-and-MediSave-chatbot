@@ -12,4 +12,5 @@ Private,80 and below,3500
 Private,81 and above,4500
 Day Surgery,80 and below,1500
 Day Surgery,81 and above,2000
-Outpatient,,500
+Outpatient,80 and below,500
+Outpatient,81 and above,1000
