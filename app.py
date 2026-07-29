@@ -167,6 +167,12 @@ DEDUCTIBLE_TRIGGERS = [
     r"\bpay before mediashield\b",
 ]
 
+COVERAGE_COMPARE_TRIGGERS = [
+    r"\bcompare\b", r"\bcomparison\b", r"\bversus\b", r"\bvs\b",
+    r"\bdifference between\b", r"\bwhich is better\b",
+    r"\bshield life and medisave\b", r"\bmedisave and shield\b",
+]
+
 
 # ── LLM & vector store (session-state singleton) ─────────────────────────────
 @st.cache_resource
@@ -193,6 +199,10 @@ def get_llm():
 def is_deductible_question(question: str) -> bool:
     q = question.lower()
     return any(re.search(t, q) for t in DEDUCTIBLE_TRIGGERS)
+
+def is_coverage_compare_question(question: str) -> bool:
+    q = question.lower()
+    return any(re.search(t, q) for t in COVERAGE_COMPARE_TRIGGERS)
 
 
 def format_docs(docs: list[Document]) -> str:
@@ -342,6 +352,7 @@ SAMPLE_QUERIES = [
     "What are the MediShield Life claim limits?",
     "Can I use MediSave for my family?",
     "How do I pay MediShield Life premiums?",
+    "Compare MediShield Life vs MediSave coverage",
 ]
 cols = st.columns(3)
 for i, q in enumerate(SAMPLE_QUERIES):
@@ -401,6 +412,45 @@ if st.session_state.get("pending_question"):
                 if st.button("Skip calculator"):
                     st.session_state.pending_question = None
                     st.rerun()
+
+        # Show coverage comparison if user asks for it
+        if is_coverage_compare_question(st.session_state.pending_question):
+            st.markdown("---")
+            st.markdown("**⚖️ MediShield Life vs MediSave Coverage Comparison**")
+            comparison_col1, comparison_col2 = st.columns(2)
+            ml = LIMITS.get("main_limits", {})
+            annual = _fmt(LIMITS.get("max_claim", {}).get("annual_limit", 200000))
+
+            with comparison_col1:
+                st.markdown("### 🛡️ MediShield Life")
+                st.markdown(f"**Daily ward limit:** {_fmt(ml.get('ward_limit_per_day', 830))}/day")
+                st.markdown(f"**ICU:** {_fmt(ml.get('icu_limit_per_day', 5140))}/day")
+                st.markdown(f"**First 2 days (extra):** +{_fmt(ml.get('first_2_days', 800))}/day")
+                st.markdown(f"**Day Surgery:** {_fmt(ml.get('day_surgery_per_day', 830))}/day")
+                st.markdown(f"**Psychiatric:** {_fmt(ml.get('psychiatric_per_day', 230))}/day")
+                st.markdown(f"**Annual claim limit:** {annual}")
+                st.markdown("**Purpose:** Insurance against large hospital bills")
+                st.markdown("**Who it's for:** All Singapore citizens & PRs (automatic)")
+
+            with comparison_col2:
+                st.markdown("### 💰 MediSave")
+                st.markdown(f"**Hospitalisation (first 2 days):** {_fmt(ml.get('first_2_days', 1130))}/day")
+                st.markdown(f"**Hospitalisation (day 3+):** {_fmt(ml.get('day3_onwards', 400))}/day")
+                st.markdown(f"**ICU (first 2 days):** {_fmt(ml.get('first_2_days', 1130))}/day")
+                st.markdown(f"**ICU (day 3+):** {_fmt(ml.get('day3_onwards', 400))}/day")
+                st.markdown(f"**Day Surgery:** {_fmt(ml.get('day_surgery_per_day', 830))}/day")
+                st.markdown("**Purpose:** Pay for hospitalisation & selected outpatient treatments")
+                st.markdown("**Who it's for:** CPF members with accumulated savings")
+
+            st.markdown("---")
+            st.markdown("**Key differences:**")
+            st.markdown("| | MediShield Life | MediSave |")
+            st.markdown("|---|---:|---:|")
+            st.markdown(f"| Type | Insurance (premiums payable) | Savings (your CPF money) |")
+            st.markdown(f"| Purpose | Protect against large bills | Pay hospitalisation costs |")
+            st.markdown(f"| Daily ward limit | {_fmt(ml.get('ward_limit_per_day', 830))} | {_fmt(ml.get('first_2_days', 1130))} first 2 days, {_fmt(ml.get('day3_onwards', 400))} after |")
+            st.markdown(f"| Annual limit | {annual} | No limit (uses your balance) |")
+            st.markdown(f"| Citizenship | Automatic for SC/PR | Must have CPF savings |")
 
         # Show sources for regular answers
         if get_vectorstore() is not None:
