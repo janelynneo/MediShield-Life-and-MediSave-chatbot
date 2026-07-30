@@ -531,7 +531,9 @@ st.markdown(
     f'<div style="font-size:0.85em; color:#555;">'
     f'Not medical advice. For authoritative guidance, visit '
     f'<a href="https://www.cpf.gov.sg" target="_blank">CPF</a> or '
-    f'<a href="https://www.moh.gov.sg" target="_blank">MOH</a>.'
+    f'<a href="https://www.moh.gov.sg" target="_blank">MOH</a>. '
+    f'Questions or feedback? '
+    f'<a href="https://www.cpf.gov.sg/member/contact-us" target="_blank">Write to us</a>.'
     f'</div>'
     f'</div>'
     f'</div>',
