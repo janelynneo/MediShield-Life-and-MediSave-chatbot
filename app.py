@@ -52,6 +52,7 @@ OTHER_TREATMENTS: dict = {}
 PRORATION_INPATIENT: dict = {}
 PRORATION_DAYSURG: dict = {}
 PRORATION_CH: dict = {}
+COINSURANCE: list = []  # [(bracket, pct), ...]
 
 def _int(val):
     try:
@@ -126,6 +127,9 @@ if _LIMITS_CSV.exists():
                 citizenship = item
                 if setting and citizenship:
                     PRORATION_CH[(setting, citizenship)] = _pct(row.get("medishield_life",""))
+
+            elif current == "co-insurance" and cat and ms is not None:
+                COINSURANCE.append((cat, ms))
 
 else:
     LIMITS["main_limits"] = {
@@ -447,12 +451,17 @@ if st.session_state.get("pending_question"):
                     ward_sel = st.session_state.get("calc_ward", WARD_CLASSES[0])
                     age_sel = st.session_state.get("calc_age", AGE_GROUPS[0])
                     deductible = DEDUCTIBLES.get((ward_sel, age_sel), 0)
+                    annual_limit_raw = LIMITS.get('max_claim', {}).get('annual_limit', 200000)
                     result = (
-                        f"**Deductible: ${deductible:,}** "
+                        f"**Deductible: {_fmt(deductible)}** "
                         f"(ward class **{ward_sel}**, age **{age_sel}**)\n\n"
-                        f"The deductible is the amount you pay once per policy year before MediShield Life coverage begins.\n\n"
-                        f"**Annual claim limit:** Up to {_fmt(LIMITS.get('max_claim', {}).get('annual_limit', 200000))} per policy year (no lifetime limit).\n"
-                        f"**Co-insurance:** You also pay 10-20% of the remaining bill."
+                        f"The deductible is the fixed amount you pay once per policy year before MediShield Life starts paying.\n\n"
+                        f"**Annual claim limit:** Up to {_fmt(annual_limit_raw)} per policy year.\n\n"
+                        f"**Co-insurance (on remaining bill after deductible):**\n"
+                        f"  • First $5,000: 10%\n"
+                        f"  • Next $5,000: 5%\n"
+                        f"  • Above $10,000: 3%\n\n"
+                        f"After deductible and co-insurance, MediShield Life covers the rest (up to claim limits)."
                     )
                     st.session_state.chat_history.append(AIMessage(content=result))
                     st.session_state.pending_question = None
