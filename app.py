@@ -533,7 +533,7 @@ st.markdown(
     f'<a href="https://www.cpf.gov.sg" target="_blank">CPF</a> or '
     f'<a href="https://www.moh.gov.sg" target="_blank">MOH</a>. '
     f'Questions or feedback? '
-    f'<a href="https://www.cpf.gov.sg/member/contact-us" target="_blank">Write to us</a>.'
+    f'<a href="https://www.cpf.gov.sg/service/write-to-us" target="_blank">Write to us</a>.'
     f'</div>'
     f'</div>'
     f'</div>',
