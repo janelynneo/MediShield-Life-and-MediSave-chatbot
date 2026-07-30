@@ -461,7 +461,7 @@ if st.session_state.get("pending_question"):
                         f"  • First $5,000: 10%\n"
                         f"  • Next $5,000: 5%\n"
                         f"  • Above $10,000: 3%\n\n"
-                        f"After deductible and co-insurance, MediShield Life covers the rest (up to claim limits)."
+                        f"The claim is subject to your deductible and co-insurance. MediShield Life covers the remaining amount, up to claim limits."
                     )
                     st.session_state.chat_history.append(AIMessage(content=result))
                     st.session_state.pending_question = None
