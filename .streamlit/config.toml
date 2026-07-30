@@ -1,2 +1,6 @@
 [server]
 staticDir = "../static"
+
+[theme]
+font = "sans serif"
+baseFontSize = 14
