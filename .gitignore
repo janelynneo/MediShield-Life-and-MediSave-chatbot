@@ -80,3 +80,4 @@ rag/index/
 /workspaces/*
 !/workspaces/_template/
 # <<< coc:gitignore_additions <<<
+*.numbers
