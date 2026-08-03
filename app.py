@@ -37,6 +37,7 @@ st.set_page_config(
 # ── All configurable limits (loaded from data/limits.csv) ────────────────────────
 _LIMITS_CSV = BASE_DIR / "data" / "limits.csv"
 os.makedirs(BASE_DIR / "data", exist_ok=True)
+_csv_loaded = False
 
 # Structure: LIMITS["section"][key] = value
 # DEDUCTIBLES[(ward, age)] = deductible
@@ -127,6 +128,7 @@ if _LIMITS_CSV.exists():
 
             elif sec == "co-insurance" and cat and ms is not None:
                 COINSURANCE.append((cat, ms))
+    _csv_loaded = True
 else:
     LIMITS["main_limits"] = {
         "ward_limit_per_day": 830,
@@ -159,7 +161,7 @@ else:
 
 # ── Web scraper — fetch official CPF PDF and update CSV ──────────────────────
 def _fetch_official_limits():
-    """Download the official CPF InfoBooklet PDF and return extracted text."""
+    """Download the official CPF InfoBooklet PDF and return (text, error_msg)."""
     try:
         import urllib.request, ssl, io
         from pdfminer.high_level import extract_text
@@ -171,9 +173,9 @@ def _fetch_official_limits():
         with urllib.request.urlopen(req, context=ctx) as resp:
             pdf_bytes = resp.read()
         text = extract_text(io.BytesIO(pdf_bytes))
-        return text
-    except Exception:
-        return None
+        return text, None
+    except Exception as exc:
+        return None, f"Failed to fetch CPF PDF: {exc}"
 
 
 # ── Conversation state ────────────────────────────────────────────────────────
@@ -198,21 +200,24 @@ with st.sidebar:
     st.markdown("### ⚙️ Data")
     if st.button("📥 Refresh from CPF official site"):
         with st.spinner("Downloading official CPF InfoBooklet PDF…"):
-            text = _fetch_official_limits()
-            if text:
+            text, err = _fetch_official_limits()
+            if err:
+                st.error(f"❌ {err}")
+            elif text:
                 st.success("✅ Official PDF scraped successfully!")
                 ded_idx = text.find("6.2 What is the deductible")
                 if ded_idx > 0:
                     st.text_area("Deductible section preview", text[ded_idx:ded_idx + 500],
                                  height=120, disabled=True)
-            else:
-                st.error("❌ Failed to fetch CPF PDF. Check your internet connection.")
 
 if get_vectorstore() is None:
     st.warning(
         "⚠️ The search index is not set up yet. "
         "Make sure you've run `python rag/ingest.py` first."
     )
+
+if _LIMITS_CSV.exists() and not _csv_loaded:
+    st.warning("⚠️ The limits CSV was found but could not be parsed. Using default values.")
 
 # Clear chat
 if st.button("🗑️ Clear Chat"):
@@ -255,11 +260,18 @@ if st.session_state.get("pending_question"):
     )
 
     with st.spinner("Searching official sources…"):
-        answer = rag_answer(
-            st.session_state.pending_question,
-            st.session_state.chat_history,
-            LIMITS,
-        )
+        try:
+            answer = rag_answer(
+                st.session_state.pending_question,
+                st.session_state.chat_history,
+                LIMITS,
+            )
+        except Exception as exc:
+            print(f"[rag_answer] Unexpected error: {exc}", exc)
+            answer = (
+                "⚠️ Sorry, something went wrong while generating your answer. "
+                "Please try again in a moment."
+            )
 
     with st.chat_message("assistant"):
         st.markdown(answer)
@@ -360,10 +372,15 @@ if st.session_state.get("pending_question"):
 
 # Footer
 st.markdown("---")
+LOGO_PATH = BASE_DIR / "static" / "cpf_logo.png"
+footer_left = (
+    f'<img src="file://{LOGO_PATH}" width="110" style="pointer-events:none; display:block;"/>'
+    if LOGO_PATH.exists()
+    else '<span style="font-size:0.85em; color:#555;">🏥 MediShield Life &amp; MediSave</span>'
+)
 st.markdown(
     f'<div style="display:flex; align-items:center; gap:12px; margin-top:8px;">'
-    f'<img src="file://{BASE_DIR}/static/cpf_logo.png" width="110" '
-    f'style="pointer-events:none; display:block;"/>'
+    f'{footer_left}'
     f'<div>'
     f'<div style="font-size:0.85em; color:#555;">'
     f'Not medical advice. For authoritative guidance, visit '

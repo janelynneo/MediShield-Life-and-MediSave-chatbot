@@ -132,7 +132,10 @@ def get_relevant_docs(question: str, k: int = 5) -> list[Document]:
     vectorstore = get_vectorstore()
     if vectorstore is None:
         return []
-    docs = vectorstore.similarity_search(question, k=k)
+    try:
+        docs = vectorstore.similarity_search(question, k=k)
+    except Exception:
+        return []
     q_lower = question.lower()
     medisave_terms = ["medisave", "icu", "hospitalisation", "hospitalization",
                       "withdraw", "balance", "savings", "hospital bill", "daily ward"]
@@ -183,8 +186,14 @@ def rag_answer(question: str, chat_history: list, limits: dict) -> str:
 
     wrapped_prompt = _wrap_prompt(question, system_base + "\n\n" + context_block)
 
-    response = llm.invoke([
-        {"role": "system", "content": "You are a helpful healthcare assistant. Follow the system instructions."},
-        {"role": "user", "content": wrapped_prompt},
-    ])
-    return response.content
+    try:
+        response = llm.invoke([
+            {"role": "system", "content": "You are a helpful healthcare assistant. Follow the system instructions."},
+            {"role": "user", "content": wrapped_prompt},
+        ])
+        return response.content
+    except Exception:
+        return (
+            "⚠️ Sorry, something went wrong while generating your answer. "
+            "Please try again in a moment."
+        )
