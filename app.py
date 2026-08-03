@@ -61,6 +61,22 @@ COINSURANCE: list = []
 WARD_CLASSES = ["Class C", "Class B1", "Class B2", "Class A", "Private", "Day Surgery", "Outpatient"]
 AGE_GROUPS = ["80 and below", "81 and above"]
 
+# ── Curated FAQs (based on official CPF/MOH sources) ──────────────────────────
+FAQS = [
+    "How do I make a MediShield Life claim?",
+    "Can I use MediSave for my parents' medical bills?",
+    "What is the deductible and when does it apply?",
+    "Can I opt out of MediShield Life?",
+    "What is co-insurance and how does it work?",
+    "What is the difference between MediShield Life and MediSave?",
+    "How much can I withdraw from MediSave for hospitalization?",
+    "What does the annual claim limit mean?",
+    "How is my MediShield Life premium determined?",
+    "Can I use MediSave for outpatient treatments?",
+    "What happens at age 65 with my MediShield Life coverage?",
+    "Can I use MediSave to pay for my child's medical bills?",
+]
+
 
 def _int(val):
     try:
@@ -209,6 +225,12 @@ with st.sidebar:
                 if ded_idx > 0:
                     st.text_area("Deductible section preview", text[ded_idx:ded_idx + 500],
                                  height=120, disabled=True)
+
+    st.markdown("### ❓ Frequently Asked Questions")
+    with st.expander("See all FAQs", expanded=False):
+        for q in FAQS:
+            if st.button(q, use_container_width=True, key=f"faq_{q}"):
+                st.session_state.chat_input_area = q
 
 if get_vectorstore() is None:
     st.warning(
