@@ -2348,7 +2348,7 @@ wheels = [
 
 [[package]]
 name = "kailash"
-version = "2.28.3"
+version = "2.62.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2356,9 +2356,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d9/cf/b9ac3eab758ffe48587eb707d750538c10acafae3dba814628c4603c7d7f/kailash-2.28.3.tar.gz", hash = "sha256:b08f0c5572ff499f86f7ab034fa18d60865576fad43c244d6d185f6c5501f544", size = 2815373, upload-time = "2026-06-01T04:27:25.939Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/16/38/7f272731823f6c8139c27c8d43e30bc816b26b769467a8dcc4529c8e867f/kailash-2.62.0.tar.gz", hash = "sha256:c2f7f48d706b03d4fe893a3ecdade39b9c17bd25bd940b4a7b4a6f29398560d7", size = 3202521, upload-time = "2026-07-25T08:21:07.534Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/90/5da92b7df91ed9218540d8b282cef48d8a80b6905a63b643442fbd4f5bce/kailash-2.28.3-py3-none-any.whl", hash = "sha256:c93efe249005fd722a31cad6c763d197a3ba6082df7308c1b652567b5ca8e5d6", size = 3223507, upload-time = "2026-06-01T04:27:23.843Z" },
+    { url = "https://files.pythonhosted.org/packages/02/01/ef4270d2feba17f391d2990723ddf2be5ebe6aa10a2ce3c9c8659e580626/kailash-2.62.0-py3-none-any.whl", hash = "sha256:4829a03e52163d276c0a7a11f8d65867b50ffbbca8c36e918ddd285293e1af8c", size = 3654301, upload-time = "2026-07-25T08:21:05.57Z" },
 ]
 
 [[package]]
@@ -2487,7 +2487,7 @@ rl = [
 
 [[package]]
 name = "kailash-nexus"
-version = "2.8.0"
+version = "2.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -2510,7 +2510,7 @@ dependencies = [
     { name = "websockets" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ae/8d/6d632534de8b954f4e3b0cb3f17046b5415a0b03e7799fcfcd92d7b82525/kailash_nexus-2.8.0-py3-none-any.whl", hash = "sha256:589b26d1a9f02da91de9bf90a4de48671b10d5caac06248a6b1a88ef893e68d6", size = 298538, upload-time = "2026-05-31T11:27:01.495Z" },
+    { url = "https://files.pythonhosted.org/packages/78/8a/06d1de84c207bd8e5d04a882bd04622c97b7b7e13a0fe757065a643569d0/kailash_nexus-2.15.0-py3-none-any.whl", hash = "sha256:c1b5b7b904cf69ca8876e8af11a606802d9c6e8b62310071662b9fa04220a67e", size = 315850, upload-time = "2026-07-25T08:23:29.036Z" },
 ]
 
 [[package]]
@@ -3463,7 +3463,10 @@ dependencies = [
     { name = "kailash-nexus" },
     { name = "kailash-pact" },
     { name = "kaizen-agents" },
+    { name = "passlib", extra = ["bcrypt"] },
+    { name = "pypdf2" },
     { name = "python-dotenv" },
+    { name = "requests" },
     { name = "rich" },
     { name = "structlog" },
 ]
@@ -3495,22 +3498,25 @@ requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0" },
     { name = "detect-secrets", marker = "extra == 'dev'", specifier = ">=1.5.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.12.0" },
-    { name = "kailash", specifier = ">=2.28.3" },
+    { name = "kailash", specifier = ">=2.28.4" },
     { name = "kailash-align", marker = "extra == 'align'", specifier = ">=0.7.1" },
     { name = "kailash-align", extras = ["all"], marker = "extra == 'all'", specifier = ">=0.7.1" },
     { name = "kailash-dataflow", specifier = ">=2.10.3" },
     { name = "kailash-kaizen", specifier = ">=2.24.5" },
     { name = "kailash-mcp", specifier = ">=0.2.14" },
     { name = "kailash-ml", specifier = ">=1.7.4" },
-    { name = "kailash-nexus", specifier = ">=2.8.0" },
+    { name = "kailash-nexus", specifier = ">=2.9.0" },
     { name = "kailash-pact", specifier = ">=0.12.0" },
     { name = "kaizen-agents", specifier = ">=0.9.8" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
+    { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.2.0" },
+    { name = "pypdf2", specifier = ">=3.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.2.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "requests", specifier = ">=2.31.0" },
     { name = "rich", specifier = ">=13.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "structlog", specifier = ">=23.1.0" },
@@ -4383,6 +4389,20 @@ wheels = [
 ]
 
 [[package]]
+name = "passlib"
+version = "1.7.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b6/06/9da9ee59a67fae7761aab3ccc84fa4f3f33f125b370f1ccdb915bf967c11/passlib-1.7.4.tar.gz", hash = "sha256:defd50f72b65c5402ab2c573830a6978e5f202ad0d984793c8dde2c4152ebe04", size = 689844, upload-time = "2020-10-08T19:00:52.121Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3b/a4/ab6b7589382ca3df236e03faa71deac88cae040af60c071a78d254a62172/passlib-1.7.4-py2.py3-none-any.whl", hash = "sha256:aa6bca462b8d8bda89c70b382f0c298a20b5560af6cbfa2dce410c0a2fb669f1", size = 525554, upload-time = "2020-10-08T19:00:49.856Z" },
+]
+
+[package.optional-dependencies]
+bcrypt = [
+    { name = "bcrypt" },
+]
+
+[[package]]
 name = "pathspec"
 version = "1.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -5225,6 +5245,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f3/91/9c6ee907786a473bf81c5f53cf703ba0957b23ab84c264080fb5a450416f/pyparsing-3.3.2.tar.gz", hash = "sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc", size = 6851574, upload-time = "2026-01-21T03:57:59.36Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/10/bd/c038d7cc38edc1aa5bf91ab8068b63d4308c66c4c8bb3cbba7dfbc049f9c/pyparsing-3.3.2-py3-none-any.whl", hash = "sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d", size = 122781, upload-time = "2026-01-21T03:57:55.912Z" },
+]
+
+[[package]]
+name = "pypdf2"
+version = "3.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/bb/18dc3062d37db6c491392007dfd1a7f524bb95886eb956569ac38a23a784/PyPDF2-3.0.1.tar.gz", hash = "sha256:a74408f69ba6271f71b9352ef4ed03dc53a31aa404d29b5d31f53bfecfee1440", size = 227419, upload-time = "2022-12-31T10:36:13.13Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8e/5e/c86a5643653825d3c913719e788e41386bee415c2b87b4f955432f2de6b2/pypdf2-3.0.1-py3-none-any.whl", hash = "sha256:d16e4205cfee272fbdc0568b68d82be796540b1537508cef59388f839c191928", size = 232572, upload-time = "2022-12-31T10:36:10.327Z" },
 ]
 
 [[package]]

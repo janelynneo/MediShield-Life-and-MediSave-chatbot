@@ -20,6 +20,7 @@ from utils.llm import (
     is_deductible_question,
     is_coverage_compare_question,
 )
+from utils.auth import verify_user, get_role
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
@@ -200,7 +201,57 @@ def init_state():
         st.session_state.chat_history = []
     if "pending_question" not in st.session_state:
         st.session_state.pending_question = None
+    # Auth state
+    if "is_logged_in" not in st.session_state:
+        st.session_state.is_logged_in = False
+    if "username" not in st.session_state:
+        st.session_state.username = None
+    if "role" not in st.session_state:
+        st.session_state.role = None
+    if "last_answer" not in st.session_state:
+        st.session_state.last_answer = None
 
+
+# ── Auth helpers ──────────────────────────────────────────────────────────────
+def require_auth():
+    """Show an error and stop if the user is not logged in."""
+    if not st.session_state.get("is_logged_in", False):
+        st.error("Please log in to access this app.")
+        st.stop()
+
+
+def require_admin():
+    """Show an error and stop if the user is not an admin."""
+    require_auth()
+    if st.session_state.get("role") != "admin":
+        st.error("You do not have permission to access this page.")
+        st.stop()
+
+
+# ── Auth gate ─────────────────────────────────────────────────────────────────
+init_state()
+
+if not st.session_state.is_logged_in:
+    # ── Login page (rendered as full page, then stops) ─────────────────────
+    st.title("🏥 MediShield Life & MediSave Assistant")
+    st.caption("Please log in to continue.")
+
+    with st.form("login_form", clear_on_submit=True):
+        username = st.text_input("Username", placeholder="Enter your username")
+        password = st.text_input("Password", type="password", placeholder="Enter your password")
+        submitted = st.form_submit_button("Log In", use_container_width=True)
+        if submitted:
+            if not username or not password:
+                st.error("Please enter both username and password.")
+            elif verify_user(username, password):
+                st.session_state.is_logged_in = True
+                st.session_state.username = username
+                st.session_state.role = get_role(username) or "user"
+                st.success(f"Welcome, {username}!")
+                st.rerun()
+            else:
+                st.error("Invalid username or password.")
+    st.stop()
 
 # ── UI ───────────────────────────────────────────────────────────────────────
 st.title("🏥 MediShield Life & MediSave Assistant")
@@ -209,10 +260,15 @@ st.caption(
     "Based on official CPF and MOH sources."
 )
 
-init_state()
-
-# Sidebar: refresh from official CPF PDF
+# Sidebar: refresh from official CPF PDF + logout
 with st.sidebar:
+    # User info + logout
+    st.markdown(f"**👤 {st.session_state.username}** ({st.session_state.role})")
+    if st.button("🚪 Log Out", use_container_width=True):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
+    st.markdown("---")
     st.markdown("### ⚙️ Data")
     if st.button("📥 Refresh from CPF official site"):
         with st.spinner("Downloading official CPF InfoBooklet PDF…"):
@@ -297,6 +353,14 @@ if st.session_state.get("pending_question"):
 
     with st.chat_message("assistant"):
         st.markdown(answer)
+
+        # ── Copy answer ──────────────────────────────────────────────────────
+        st.session_state.last_answer = answer
+        col_copy, _ = st.columns([1, 3])
+        with col_copy:
+            if st.button("📋 Copy Answer", key="copy_answer"):
+                st.code(answer, language=None)
+                st.success("✅ Answer copied! Select all text (Ctrl+A / Cmd+A) and copy.")
 
         # ── Deductible calculator ──────────────────────────────────────────
         if is_deductible_question(st.session_state.pending_question):
