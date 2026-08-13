@@ -46,6 +46,11 @@ BANK_ACCOUNT_PATTERN = re.compile(
     r"\b\d{3,4}[-\s]?\d{3,4}[-\s]?\d{3,4}\b"
 )
 
+# Credit card numbers (13-19 digits, formatted as XXXX-XXXX-XXXX-XXXX or similar)
+CREDIT_CARD_PATTERN = re.compile(
+    r"\b(?:\d{4}[ -\.]?){3,4}\d{1,4}\b"
+)
+
 # Postal codes (6-digit Singapore postal codes)
 POSTAL_CODE_PATTERN = re.compile(
     r"\b\d{6}\b"
@@ -109,21 +114,47 @@ def mask_bank(text: str) -> str:
     """Replace potential bank account numbers with [BANK_ACCOUNT]."""
     # Only mask if the number looks like a bank account (not generic invoice numbers)
     # Heuristic: bank accounts are often in groups of 3-4 digits
-    matches = BANK_ACCOUNT_PATTERN.findall(text)
+    matches = list(BANK_ACCOUNT_PATTERN.finditer(text))
     for match in matches:
         # Only mask if preceded/followed by banking-related context
-        span = BANK_ACCOUNT_PATTERN.search(text).span()
-        start, end = span
+        start, end = match.span()
         context = text[max(0, start - 30): min(len(text), end + 30)].lower()
         banking_keywords = ["account", "bank", "giro", "transfer", "pay", "payment", "credit", "debit"]
+        matched_value = match.group()
         if any(kw in context for kw in banking_keywords):
-            text = text.replace(match, "[BANK_ACCOUNT]")
+            text = text.replace(matched_value, "[BANK_ACCOUNT]")
         else:
             # Replace long digit sequences that aren't obviously invoice/amount numbers
-            cleaned = match.replace(" ", "").replace("-", "")
-            if len(cleaned) >= 9 and not any(c.isalpha() for c in match):
-                text = text.replace(match, "[BANK_ACCOUNT]")
+            cleaned = matched_value.replace(" ", "").replace("-", "")
+            if len(cleaned) >= 9 and not any(c.isalpha() for c in matched_value):
+                text = text.replace(matched_value, "[BANK_ACCOUNT]")
     return text
+
+
+def mask_credit_card(text: str) -> str:
+    """Replace potential credit card numbers with [CREDIT_CARD]."""
+    def _is_credit_card(cleaned: str) -> bool:
+        # Must be 13-19 digits and pass Luhn check
+        if not cleaned.isdigit() or len(cleaned) < 13 or len(cleaned) > 19:
+            return False
+        # Luhn algorithm
+        total = 0
+        reverse_digits = cleaned[::-1]
+        for i, digit in enumerate(reverse_digits):
+            n = int(digit)
+            if i % 2 == 1:
+                n *= 2
+                if n > 9:
+                    n -= 9
+            total += n
+        return total % 10 == 0
+
+    result = text
+    for match in CREDIT_CARD_PATTERN.finditer(text):
+        cleaned = match.group().replace(" ", "").replace("-", "").replace(".", "")
+        if _is_credit_card(cleaned):
+            result = result.replace(match.group(), "[CREDIT_CARD]")
+    return result
 
 
 def mask_names(text: str) -> str:
@@ -148,5 +179,6 @@ def mask_all(text: str) -> str:
     text = mask_phone(text)
     text = mask_dob(text)
     text = mask_address(text)
+    text = mask_credit_card(text)
     text = mask_bank(text)
     return text

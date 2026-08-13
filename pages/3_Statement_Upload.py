@@ -35,6 +35,7 @@ st.caption("Upload your MediShield Life or MediSave statement — we'll explain 
 # ── File upload ────────────────────────────────────────────────────────────────
 SUPPORTED_FORMATS = {
     "pdf": "PDF document",
+    "docx": "Word document",
     "png": "PNG image",
     "jpg": "JPEG image",
     "jpeg": "JPEG image",
@@ -50,7 +51,7 @@ accepted_exts = list(SUPPORTED_FORMATS.keys())
 uploaded_file = st.file_uploader(
     "Upload your statement",
     type=accepted_exts,
-    help="Supported: PDF, PNG, JPG, WEBP, TIFF, BMP, GIF, TXT, MD",
+    help="Supported: PDF, DOCX, PNG, JPG, WEBP, TIFF, BMP, GIF, TXT, MD",
 )
 
 if not uploaded_file:
@@ -98,15 +99,39 @@ if uploaded_file and st.session_state.statement_result is None:
         if not raw_text or len(raw_text.strip()) < 20:
             st.error(
                 "❌ Could not extract readable text from this file. "
-                "Please ensure the document is clear and try again."
+                "Please ensure the document is a valid DOCX file and try again."
             )
             st.stop()
 
-        # 2. Mask PII
+        # 2. Validate content — block potential prompt injection in uploaded documents
+        import re
+        injection_patterns = [
+            r"ignore\s+(all\s+)?previous\s+(instructions?|system)",
+            r"forget\s+(all\s+)?instructions",
+            r"disregard\s+(all\s+)?(your\s+)?instructions",
+            r"you\s+are\s+now\s+",
+            r"as\s+an\s+AI",
+            r"pretend\s+you\s+are",
+            r"system\s*:\s*",
+            r"instruction\s*:\s*",
+            r"delimiter\s*:",
+            r"---+\s*$",
+            r"^>>>\s*",
+            r"^<\|<\|>",
+        ]
+        combined = "|".join(injection_patterns)
+        if re.search(combined, raw_text, re.IGNORECASE):
+            st.error(
+                "❌ The uploaded document contains content that may indicate an injection attempt "
+                "and cannot be processed. Please ensure your document is a genuine statement."
+            )
+            st.stop()
+
+        # 3. Mask PII
         masked_text = mask_all(raw_text)
         st.session_state.statement_masked_text = masked_text
 
-        # 3. Analyze with LLM
+        # 4. Analyze with LLM
         with st.spinner("Analyzing your statement…"):
             explanation = analyze_statement(raw_text, masked_text)
 

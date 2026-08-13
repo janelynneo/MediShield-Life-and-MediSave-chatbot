@@ -52,6 +52,7 @@ htmlcov/
 *.pem
 *.key
 secrets/
+.streamlit/secrets.toml
 
 # Workspace session notes (per-session, not versioned)
 **/.session-notes
@@ -67,6 +68,9 @@ secrets/
 
 # MediShield Chatbot — generated RAG index (rebuilt via rag/ingest.py)
 rag/index/
+
+# User-uploaded files (statement uploads)
+data/sample_docs/uploads/
 
 # >>> coc:gitignore_additions — managed by loom /sync; do not edit between markers >>>
 .claude/operator-id

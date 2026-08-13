@@ -67,3 +67,188 @@ CPF Board, MOH, or the Singapore Government. Nothing on this platform constitute
 official advice or a substitute for official sources.
 """
 )
+
+# ── Process Flowcharts ──────────────────────────────────────────────────────────
+st.markdown("---")
+st.markdown("## Process Flowcharts")
+
+# ── Flowchart CSS ─────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+.flowchart-container { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 20px 0; }
+.flow-row { display: flex; flex-direction: column; align-items: center; }
+.flow-row-horizontal { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0; }
+.flow-node { padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; text-align: center; min-width: 160px; max-width: 220px; }
+.flow-node-start { background: #1a4480; color: white; border: 2px solid #1a4480; }
+.flow-node-process { background: #c9ab5a; color: #1a1a1a; border: 2px solid #c9ab5a; }
+.flow-node-ai { background: #4a7fc1; color: white; border: 2px solid #4a7fc1; }
+.flow-node-output { background: #2e7d32; color: white; border: 2px solid #2e7d32; }
+.flow-node-stop { background: #b71c1c; color: white; border: 2px solid #b71c1c; }
+.flow-node-upload { background: #6a0dad; color: white; border: 2px solid #6a0dad; }
+.flow-node-mask { background: #e65100; color: white; border: 2px solid #e65100; }
+.flow-node-decision { background: #00695c; color: white; border: 2px solid #00695c; border-radius: 50%; min-width: 40px; max-width: 40px; padding: 10px 14px; }
+.arrow { font-size: 20px; color: #555; text-align: center; line-height: 1; }
+.arrow-h { font-size: 20px; color: #555; text-align: center; line-height: 1; }
+.flow-label { font-size: 11px; color: #666; text-align: center; margin-top: -4px; margin-bottom: 4px; font-style: italic; }
+</style>
+""", unsafe_allow_html=True)
+
+# ── Use Case 1: Chat ──────────────────────────────────────────────────────────
+st.markdown("### Use Case 1 — Chat with Information")
+
+with st.container():
+    col1, col2 = st.columns([1, 6])
+    with col2:
+        st.markdown("""
+        <div class="flowchart-container">
+
+            <!-- Step 1: User asks question -->
+            <div class="flow-row">
+                <div class="flow-node flow-node-start">👤 User submits question</div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <!-- Step 2: Auth gate -->
+            <div class="flow-row">
+                <div class="flow-node flow-node-process">🔐 Login check (auth gate)</div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <!-- Step 3: RAG routing / deductible table -->
+            <div class="flow-row">
+                <div class="flow-node flow-node-decision" title="Classifier">?</div>
+            </div>
+            <div class="flow-label">Is deductible question?</div>
+
+            <div class="arrow">↓ Yes &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ↓ No</div>
+
+            <!-- Branch: Yes -->
+            <div class="flow-row-horizontal">
+                <div class="flow-row">
+                    <div class="flow-node flow-node-process">📊 Show deductible table</div>
+                    <div class="flow-node flow-node-process">💬 Explain in plain English</div>
+                </div>
+
+                <div style="font-size:20px; color:#555;">&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+                <!-- Branch: No -->
+                <div class="flow-row">
+                    <div class="flow-node flow-node-process">🔍 Vector search (RAG)</div>
+                    <div class="flow-node flow-node-ai">🤖 LLM generates answer</div>
+                    <div class="flow-node flow-node-output">✅ Display answer + sources</div>
+                </div>
+            </div>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown("")
+st.markdown("**Use Case 1 — Chat with Information**")
+st.caption(
+    "The user submits a question about MediShield Life or MediSave. "
+    "The system checks login, classifies whether it's a deductible query, and either "
+    "displays the deductible table or performs a RAG search followed by LLM answer generation."
+)
+
+st.markdown("---")
+
+# ── Use Case 2: Statement Upload ──────────────────────────────────────────────
+st.markdown("### Use Case 2 — Statement Upload & Analysis")
+
+with st.container():
+    col1, col2 = st.columns([1, 6])
+    with col2:
+        st.markdown("""
+        <div class="flowchart-container">
+
+            <!-- Step 1: User uploads file -->
+            <div class="flow-row">
+                <div class="flow-node flow-node-upload">📄 Upload statement file</div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <!-- Step 2: Auth gate -->
+            <div class="flow-row">
+                <div class="flow-node flow-node-process">🔐 Login check (auth gate)</div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <!-- Step 3: Format check + OCR extraction -->
+            <div class="flow-row">
+                <div class="flow-node flow-node-process">🔍 Extract text (OCR for images/scans)</div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <!-- Step 4: Prompt injection check -->
+            <div class="flow-row">
+                <div class="flow-node flow-node-decision" title="Decision">🔍 ?</div>
+            </div>
+            <div class="flow-label">Does the extracted text contain a prompt injection attempt?</div>
+
+            <div class="arrow">↓ No &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ↓ Yes (block)</div>
+
+            <div class="flow-row">
+                <div class="flow-node flow-node-stop">🚫 Error: Block upload</div>
+            </div>
+
+            <div style="height:4px;"></div>
+
+            <!-- Step 5: PII masking -->
+            <div class="flow-row">
+                <div class="flow-node flow-node-mask">🎭 Mask PII (NRIC, phone, name, address, bank, DOB)</div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <!-- Step 6: LLM analysis -->
+            <div class="flow-row">
+                <div class="flow-node flow-node-ai">🤖 LLM explains statement in plain English</div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <!-- Step 7: Display result -->
+            <div class="flow-row">
+                <div class="flow-node flow-node-output">✅ Display explanation + masked text preview</div>
+            </div>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown("")
+st.markdown("**Use Case 2 — Statement Upload & Analysis**")
+st.caption(
+    "The user uploads a MediShield Life or MediSave statement (PDF, DOCX, or image). "
+    "The system extracts text via OCR, checks for prompt injection attacks, masks all personal "
+    "information (NRIC, phone, name, address, DOB, bank details), sends the masked text to the "
+    "LLM for explanation, and displays the plain-English summary alongside a preview of what was sent."
+)
+
+st.markdown("---")
+
+# ── Architecture overview ─────────────────────────────────────────────────────
+st.markdown("""
+## Architecture Overview
+
+The application is built with **Streamlit** and powered by two main backends:
+
+- **RAG Pipeline** (LangChain + OpenAI + FAISS) — for the chat knowledge assistant
+- **LLM Analysis Pipeline** — for statement upload explanation
+
+| Component | Technology | Role |
+|---|---|---|
+| Frontend | Streamlit | Multi-page web UI |
+| Auth | bcrypt + session state | Password protection & role-based access |
+| RAG Search | LangChain + OpenAI Embeddings + FAISS | Relevant document retrieval |
+| LLM | GPT-4o-mini (temperature 0.3) | Answer generation |
+| OCR | OCR.space API | Text extraction from images/scans |
+| PII Masking | Custom regex patterns | NRIC, phone, name, address, DOB, bank masking |
+| Prompt Defence | `_wrap_prompt()` | Neutralises instruction-injection in user input |
+
+All data is stored locally. No personal information is sent to any external database.
+""")

@@ -65,8 +65,7 @@ deductible,Private,80 and below,3500,,
 deductible,Private,81 and above,4500,,
 deductible,Day Surgery,80 and below,1500,,
 deductible,Day Surgery,81 and above,2000,,
-deductible,Outpatient,80 and below,500,,
-deductible,Outpatient,81 and above,1000,,
+deductible,Outpatient,per policy year,500,,
 [Pro-Ration Inpatient],,,,,
 proration_inpatient,C,sc,100,,citizen
 proration_inpatient,C,pr,60,,permanent resident

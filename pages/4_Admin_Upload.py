@@ -47,12 +47,14 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 def parse_document(file_bytes: bytes, filename: str):
     """
     Parse a document and return LangChain Document objects.
-    Supports: PDF (PyPDF2), TXT, MD (TextLoader).
+    Supports: PDF (PyPDF2), DOCX (python-docx), XLSX (openpyxl),
+    CSV (csv module), TXT, MD (TextLoader).
     """
     from langchain_core.documents import Document
     from langchain_community.document_loaders import TextLoader
     from PyPDF2 import PdfReader
     import io
+    import csv
 
     ext = os.path.splitext(filename)[-1].lower()
     docs = []
@@ -72,6 +74,65 @@ def parse_document(file_bytes: bytes, filename: str):
                 }))
         except Exception as e:
             return [], f"Failed to parse PDF: {e}"
+
+    elif ext == ".docx":
+        try:
+            from docx import Document as DocxDocument
+            docx_doc = DocxDocument(io.BytesIO(file_bytes))
+            all_text = "\n\n".join(
+                paragraph.text for paragraph in docx_doc.paragraphs
+            )
+            if all_text.strip():
+                docs.append(Document(page_content=all_text, metadata={
+                    "source_key": filename,
+                    "title": filename.replace("_", " ").replace(".docx", "").title(),
+                    "url": "https://www.cpf.gov.sg",
+                    "type": "admin_upload",
+                }))
+        except Exception as e:
+            return [], f"Failed to parse DOCX: {e}"
+
+    elif ext == ".xlsx":
+        try:
+            from openpyxl import load_workbook
+            wb = load_workbook(io.BytesIO(file_bytes), data_only=True)
+            sheet_texts = []
+            for sheet in wb.sheetnames:
+                ws = wb[sheet]
+                sheet_texts.append(f"Sheet: {sheet}")
+                for row in ws.iter_rows(values_only=True):
+                    row_text = " | ".join(
+                        str(cell) if cell is not None else ""
+                        for cell in row
+                    )
+                    if row_text.strip():
+                        sheet_texts.append(row_text)
+            all_text = "\n".join(sheet_texts)
+            if all_text.strip():
+                docs.append(Document(page_content=all_text, metadata={
+                    "source_key": filename,
+                    "title": filename.replace("_", " ").replace(".xlsx", "").title(),
+                    "url": "https://www.cpf.gov.sg",
+                    "type": "admin_upload",
+                }))
+        except Exception as e:
+            return [], f"Failed to parse XLSX: {e}"
+
+    elif ext == ".csv":
+        try:
+            text_content = file_bytes.decode("utf-8", errors="replace")
+            reader = csv.reader(text_content.splitlines())
+            rows = ["|".join(row) for row in reader if row]
+            all_text = "\n".join(rows)
+            if all_text.strip():
+                docs.append(Document(page_content=all_text, metadata={
+                    "source_key": filename,
+                    "title": filename.replace("_", " ").replace(".csv", "").title(),
+                    "url": "https://www.cpf.gov.sg",
+                    "type": "admin_upload",
+                }))
+        except Exception as e:
+            return [], f"Failed to parse CSV: {e}"
 
     elif ext in (".txt", ".md"):
         try:
@@ -166,8 +227,8 @@ def rebuild_index():
 st.markdown("### 📤 Upload Document")
 
 uploaded_file = st.file_uploader(
-    "Upload a PDF, TXT, or MD file to add to the knowledge base",
-    type=["pdf", "txt", "md"],
+    "Upload a PDF, DOCX, XLSX, CSV, TXT, or MD file to add to the knowledge base",
+    type=["pdf", "docx", "xlsx", "csv", "txt", "md"],
 )
 
 if uploaded_file:
@@ -198,6 +259,29 @@ if uploaded_file:
             st.error(f"❌ {parse_err}")
             saved_path.unlink(missing_ok=True)
             st.stop()
+
+        # Validate document content — block injection-style content in uploaded docs
+        for doc in docs:
+            import re
+            injection_patterns = [
+                r"ignore\s+(all\s+)?previous\s+(instructions?|system)",
+                r"forget\s+(all\s+)?instructions",
+                r"disregard\s+(all\s+)?(your\s+)?instructions",
+                r"you\s+are\s+now\s+",
+                r"as\s+an\s+AI",
+                r"pretend\s+you\s+are",
+                r"system\s*:\s*",
+                r"instruction\s*:\s*",
+                r"delimiter\s*:",
+            ]
+            combined = "(?i)" + "|".join(injection_patterns)
+            if re.search(combined, doc.page_content):
+                st.error(
+                    "❌ The uploaded document contains content that may indicate an injection attempt "
+                    "and cannot be processed. Please ensure the document contains only genuine content."
+                )
+                saved_path.unlink(missing_ok=True)
+                st.stop()
 
         # Chunk documents
         from utils.rag import chunk_documents, add_to_index, add_to_manifest

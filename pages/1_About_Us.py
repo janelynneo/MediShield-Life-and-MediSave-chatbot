@@ -28,6 +28,9 @@ Anyone who wants quick, clear answers about their MediShield Life and MediSave b
 
 ## How do I use it?
 
+There are two ways to use this assistant:
+
+**Chat with the FAQ assistant**
 Simply type your question in the chat box. For example:
 
 - *"What does MediShield Life cover?"*
@@ -35,8 +38,19 @@ Simply type your question in the chat box. For example:
 - *"What is the deductible for a Class B1 ward?"*
 - *"Can I use MediSave to pay for my parent's medical bills?"*
 
-The assistant will search official CPF and MOH sources and give you an answer,
-citing where the information comes from.
+The assistant searches a local knowledge base of official CPF and MOH publications,
+then generates an answer using that information — citing the source documents
+so you can verify everything.
+
+**Upload a statement for explanation**
+If you have a MediShield Life or MediSave statement (PDF, DOCX, or image), you
+can upload it on the **Statement Upload** page. The assistant will:
+
+1. Extract the text using OCR
+2. Mask any personal information (NRIC, phone number, name, address, etc.)
+3. Explain the statement in plain English
+
+Your personal information is never sent to any external service.
 
 ## What it cannot do
 
@@ -53,7 +67,10 @@ For queries beyond this tool's scope, please refer to the official
 
 ## Data and privacy
 
-Your question is sent to OpenAI to generate an answer. No personal CPF account
-information is accessed or stored. No data is retained after the session ends.
+Your question is first matched against a local knowledge base of official CPF and
+MOH publications. If relevant documents are found, their content is combined with
+your question and sent to OpenAI to generate an answer — your CPF account
+information is never accessed or sent. No personal data is retained after the
+session ends.
 """
 )

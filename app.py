@@ -151,6 +151,7 @@ else:
         "ward_limit_per_day": 830,
         "icu_limit_per_day": 5140,
         "first_2_days": 800,
+        "day3_onwards": 400,  # explicitly in fallback since not in CSV
         "day_surgery_per_day": 830,
         "psychiatric_per_day": 230,
         "psych_first_2_days": 1400,
@@ -163,7 +164,7 @@ else:
         ("Class C", "81 and above"): 2750,
         ("Class B1", "80 and below"): 2500,
         ("Class B1", "81 and above"): 3500,
-        ("Class B2", "80 and below"): 2000,
+        ("Class B2", "80 and below"): 2500,
         ("Class B2", "81 and above"): 3500,
         ("Class A", "80 and below"): 3500,
         ("Class A", "81 and above"): 4500,
@@ -171,9 +172,13 @@ else:
         ("Private", "81 and above"): 4500,
         ("Day Surgery", "80 and below"): 1500,
         ("Day Surgery", "81 and above"): 2000,
-        ("Outpatient", "80 and below"): 500,
-        ("Outpatient", "81 and above"): 1000,
+        ("Outpatient", "per policy year"): 500,
     }
+    COINSURANCE = [
+        ("First $5,000", 10),
+        ("Next $5,000", 5),
+        ("Above $10,000", 3),
+    ]
 
 
 # ── Web scraper — fetch official CPF PDF and update CSV ──────────────────────
@@ -326,6 +331,12 @@ for msg in st.session_state.chat_history:
 # Chat input
 question = st.chat_input("Ask anything about MediShield Life or MediSave…", key="chat_input_area")
 
+# Handle suggested-prompt button clicks (they set chat_input_area but don't auto-submit)
+if not question:
+    suggested = st.session_state.pop("chat_input_area", None)
+    if suggested:
+        question = suggested
+
 if question:
     st.session_state.pending_question = question
 
@@ -354,6 +365,11 @@ if st.session_state.get("pending_question"):
     with st.chat_message("assistant"):
         st.markdown(answer)
 
+        # Save question for sources lookup before clearing
+        st.session_state._pending_question_for_docs = st.session_state.get("pending_question")
+        # Clear pending_question so it doesn't re-fire on rerun
+        st.session_state.pop("pending_question", None)
+
         # ── Copy answer ──────────────────────────────────────────────────────
         st.session_state.last_answer = answer
         col_copy, _ = st.columns([1, 3])
@@ -362,45 +378,53 @@ if st.session_state.get("pending_question"):
                 st.code(answer, language=None)
                 st.success("✅ Answer copied! Select all text (Ctrl+A / Cmd+A) and copy.")
 
-        # ── Deductible calculator ──────────────────────────────────────────
-        if is_deductible_question(st.session_state.pending_question):
+        # ── Deductible table ──────────────────────────────────────────────
+        if st.session_state.get("pending_question") and is_deductible_question(st.session_state.pending_question):
             st.markdown("---")
-            st.markdown("**🧮 MediShield Life Deductible Calculator**")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.selectbox("Ward / Treatment Type", WARD_CLASSES, key="calc_ward")
-            with col2:
-                st.selectbox("Age Group", AGE_GROUPS, key="calc_age")
-            c1, c2 = st.columns([1, 1])
-            with c1:
-                if st.button("🧮 Calculate Deductible"):
-                    ward_sel = st.session_state.get("calc_ward", WARD_CLASSES[0])
-                    age_sel = st.session_state.get("calc_age", AGE_GROUPS[0])
-                    deductible = DEDUCTIBLES.get((ward_sel, age_sel), 0)
-                    annual_limit_raw = LIMITS.get("max_claim", {}).get("annual_limit", 200000)
-                    result = (
-                        f"**Deductible: {_fmt(deductible)}** "
-                        f"(ward class **{ward_sel}**, age **{age_sel}**)\n\n"
-                        f"The deductible is the fixed amount you pay once per policy year "
-                        f"before MediShield Life starts paying.\n\n"
-                        f"**Annual claim limit:** Up to {_fmt(annual_limit_raw)} per policy year.\n\n"
-                        f"**Co-insurance (on remaining bill after deductible):**\n"
-                        f"  • First $5,000: 10%\n"
-                        f"  • Next $5,000: 5%\n"
-                        f"  • Above $10,000: 3%\n\n"
-                        f"The claim is subject to your deductible and co-insurance. "
-                        f"MediShield Life covers the remaining amount, up to claim limits."
-                    )
-                    st.session_state.chat_history.append(AIMessage(content=result))
-                    st.session_state.pending_question = None
-                    st.rerun()
-            with c2:
-                if st.button("Skip calculator"):
-                    st.session_state.pending_question = None
-                    st.rerun()
+            st.markdown("**🧮 MediShield Life Deductible Table**")
+            st.caption("The deductible is the fixed amount you pay once per policy year before MediShield Life starts paying.")
+
+            # Build table: rows = ward classes, cols = age groups
+            # Outpatient is not age-based, so show it separately
+            table_data = []
+            for ward in WARD_CLASSES:
+                if ward == "Outpatient":
+                    continue
+                row = {"Ward Class": ward}
+                for age in AGE_GROUPS:
+                    val = DEDUCTIBLES.get((ward, age), 0)
+                    row[age] = _fmt(val)
+                table_data.append(row)
+
+            st.dataframe(
+                table_data,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            # Outpatient deductible (no age split)
+            op_ded = DEDUCTIBLES.get(("Outpatient", "per policy year"), 0)
+            st.markdown(f"**Outpatient:** {_fmt(op_ded)} per policy year")
+
+            annual_limit_raw = LIMITS.get("max_claim", {}).get("annual_limit", 200000)
+            coinsurance_lines = "\n".join(
+                f"  • {bracket}: {pct}%" for bracket, pct in COINSURANCE
+            )
+            result = (
+                f"The deductible table above shows the fixed amount you pay once per policy year "
+                f"before MediShield Life starts paying.\n\n"
+                f"**Annual claim limit:** Up to {_fmt(annual_limit_raw)} per policy year.\n\n"
+                f"**Co-insurance (on remaining bill after deductible):**\n"
+                f"{coinsurance_lines}\n\n"
+                f"The claim is subject to your deductible and co-insurance. "
+                f"MediShield Life covers the remaining amount, up to claim limits."
+            )
+            st.session_state.chat_history.append(AIMessage(content=result))
+            st.session_state.pending_question = None
+            st.rerun()
 
         # ── Coverage comparison ────────────────────────────────────────────
-        if is_coverage_compare_question(st.session_state.pending_question):
+        if st.session_state.get("pending_question") and is_coverage_compare_question(st.session_state.pending_question):
             st.markdown("---")
             st.markdown("**⚖️ MediShield Life vs MediSave Coverage Comparison**")
             ml = LIMITS.get("main_limits", {})
@@ -446,7 +470,8 @@ if st.session_state.get("pending_question"):
         # ── Sources ────────────────────────────────────────────────────────
         if get_vectorstore() is not None:
             from utils.llm import get_relevant_docs
-            docs = get_relevant_docs(st.session_state.pending_question, k=5)
+            question_for_docs = st.session_state.get("_pending_question_for_docs")
+            docs = get_relevant_docs(question_for_docs, k=5) if question_for_docs else []
             if docs:
                 sources = {(d.metadata.get("title", ""), d.metadata.get("url", ""))
                            for d in docs}

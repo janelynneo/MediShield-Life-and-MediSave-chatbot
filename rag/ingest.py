@@ -51,9 +51,9 @@ def main():
 
     print(f"Splitting into chunks...")
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=400,
-        chunk_overlap=80,
-        separators=["\n\n\n", "\n\n", "\n", "## ", "### ", "|", "  ", ". "],
+        chunk_size=1000,
+        chunk_overlap=150,
+        separators=["\n\n\n", "\n\n", "\n", "## ", "### ", "  ", ". "],
     )
     chunks = splitter.split_documents(docs)
     print(f"Created {len(chunks)} chunks")
