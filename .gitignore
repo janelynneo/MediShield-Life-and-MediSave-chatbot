@@ -67,8 +67,8 @@ secrets/
 **/scripts/outputs/
 **/scripts/*.log
 
-# MediShield Chatbot — generated RAG index (rebuilt via rag/ingest.py)
-rag/index/
+# MediShield Chatbot — RAG index (committed to repo for cloud deployment)
+# rag/index/
 
 # User-uploaded files (statement uploads)
 data/sample_docs/uploads/
