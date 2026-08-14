@@ -30,7 +30,7 @@ load_dotenv(BASE_DIR / ".env")
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="MediShield Life & MediSave Assistant",
+    page_title="Healthcare AI Assistant",
     page_icon="🏥",
     layout="centered",
 )
