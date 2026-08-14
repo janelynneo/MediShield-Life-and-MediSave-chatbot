@@ -1,111 +1,21 @@
-[build-system]
-requires = ["setuptools>=65.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-py-modules = ["utils", "rag", "auth"]
-
 [project]
 name = "medishield-chatbot"
 version = "0.1.0"
-description = "MediShield Life & MediSave chatbot with RAG-powered FAQ and statement analysis"
-authors = [
-    {name = "Janelyn Neo", email = "janelynneo314@gmail.com"}
-]
-readme = "README.md"
+description = "MediShield Life & MediSave Chatbot"
 requires-python = ">=3.11"
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-]
 dependencies = [
-    # Auth
     "bcrypt>=4.0.0",
-    # PDF parsing
-    "PyPDF2>=3.0.0",
-    # HTTP client
-    "requests>=2.31.0",
-    # Utilities
-    "rich>=13.0.0",
-    "python-dotenv>=1.0.0",
-    "structlog>=23.1.0",
-    "python-docx>=1.1.0",
-    "openpyxl>=3.1.0",
-    # LangChain — direct imports in code
-    "langchain-core>=0.3.0",
-    "langchain-community>=0.3.0",
-    "langchain-openai>=0.2.0",
-    # Vector store
     "faiss-cpu>=1.7.0",
-    # Web search
-    "tavily-python>=0.4.0",
-    # Web app
+    "langchain-community>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langchain-text-splitters>=0.2.0",
+    "openpyxl>=3.1.0",
+    "PyPDF2>=3.0.0",
+    "python-docx>=1.1.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+    "rich>=13.0.0",
     "streamlit>=1.40.0",
+    "tavily-python>=0.4.0",
 ]
-
-[project.optional-dependencies]
-ml = [
-    # PyTorch - On Windows, install separately: pip install torch --index-url https://download.pytorch.org/whl/cu118
-    "torch>=2.7.1",
-]
-align = [
-    "kailash-align>=0.7.1",
-]
-all = [
-    "kailash-align[all]>=0.7.1",
-]
-dev = [
-    # Testing (pytest>=7.2.0 removes vulnerable py dependency)
-    "pytest>=7.2.0",
-    "pytest-cov>=4.0",
-    "pytest-asyncio>=0.21.0",
-    # Linting & Formatting
-    "black>=23.0",
-    "isort>=5.12.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0",
-    # Security & Pre-commit
-    "detect-secrets>=1.5.0",
-    "pre-commit>=4.2.0",
-]
-
-[project.urls]
-# TODO: Replace with your project URLs
-# "Homepage" = "https://github.com/your-org/your-project"
-# "Bug Tracker" = "https://github.com/your-org/your-project/issues"
-
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
-testpaths = ["tests"]
-filterwarnings = [
-    "ignore::DeprecationWarning",
-]
-
-[tool.black]
-line-length = 100
-target-version = ["py311", "py312", "py313"]
-
-[tool.isort]
-profile = "black"
-line_length = 100
-
-[tool.ruff]
-line-length = 100
-target-version = "py311"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501"]
-
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_ignores = true
-ignore_missing_imports = true
