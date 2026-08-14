@@ -2,6 +2,9 @@
 requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+py-modules = ["utils", "rag", "auth"]
+
 [project]
 name = "medishield-chatbot"
 version = "0.1.0"
