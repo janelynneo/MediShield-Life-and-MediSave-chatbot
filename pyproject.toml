@@ -19,5 +19,5 @@ dependencies = [
     "tavily-python>=0.4.0",
 ]
 
-[tool.setuptools]
-py-modules = ["utils", "rag", "auth"]
+[tool.setuptools.packages]
+find = {}
