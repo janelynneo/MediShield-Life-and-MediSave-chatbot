@@ -16,19 +16,6 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-from utils.auth import verify_user, get_role
-
-# ── Auth — admin only ───────────────────────────────────────────────────────────
-def require_admin():
-    if not st.session_state.get("is_logged_in", False):
-        st.error("Please log in to access this page.")
-        st.stop()
-    if st.session_state.get("role") != "admin":
-        st.error("You do not have permission to access this page.")
-        st.stop()
-
-require_admin()
-
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Admin Upload — MediShield Assistant",

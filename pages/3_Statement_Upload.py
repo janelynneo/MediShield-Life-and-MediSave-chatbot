@@ -12,16 +12,6 @@ from dotenv import load_dotenv
 from pathlib import Path
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-from utils.auth import verify_user, get_role
-
-# ── Auth ──────────────────────────────────────────────────────────────────────
-def require_auth():
-    if not st.session_state.get("is_logged_in", False):
-        st.error("Please log in to access this page.")
-        st.stop()
-
-require_auth()
-
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Statement Upload — MediShield Assistant",
